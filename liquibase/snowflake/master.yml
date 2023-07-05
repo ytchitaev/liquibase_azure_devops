@@ -1,0 +1,30 @@
+databaseChangeLog:
+- changeSet:
+    id: create_db_schema
+    author: your_name
+    changes:
+      - sqlFile:
+          path: changelog/001_create_db_schema.sql
+          relativeToChangelogFile: true
+    validCheckSum: any
+
+- changeSet:
+    id: create_table1
+    author: your_name
+    changes:
+      - sqlFile:
+          path: changelog/002_create_table1.sql
+          relativeToChangelogFile: true
+    validCheckSum: any
+
+- changeSet:
+    id: create_table2
+    author: your_name
+    changes:
+      - sqlFile:
+          path: changelog/003_create_table2.sql
+          relativeToChangelogFile: true
+    validCheckSum: any
+
+# Runs all sql scripts in alphabetic order in changelog subdir of e.g. snowflake
+# validCheckSum: any - By default liquibase assumes a changeset will only be deployed once. This allows changesets to be changed over time, otherwise error on checksum diff.
