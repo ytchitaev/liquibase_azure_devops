@@ -45,7 +45,7 @@ steps:
 # SF_DATABASE.SF_SCHEMA used to load DATABASECHANGELOG and DATABASECHANGELOGLOCK must already exist
 
 ### Snowflake specific requirements
-# must run alter account set MULTI_STATEMENT_COUNT = 0; on the executing account to support multi command jdbc changesets
+# must run: ALTER ACCOUNT SET MULTI_STATEMENT_COUNT = 0; on the executing account to support multi command jdbc changesets (if required)
 
 ### Liquibase status - identify changesets that have not been deployed based on reading DATABASECHANGELOG
 
