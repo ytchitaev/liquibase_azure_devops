@@ -1,10 +1,13 @@
+# option 1 - enumerate each changeset individually, required for validCheckSum: any
+# validCheckSum: any - required to allow changesets to be changed over time, otherwise error on checksum diff
+
 databaseChangeLog:
 - changeSet:
     id: create_db_schema
     author: your_name
     changes:
       - sqlFile:
-          path: changelog/001_create_db_schema.sql
+          path: changesets/001_create_db_schema.sql
           relativeToChangelogFile: true
     validCheckSum: any
 
@@ -13,7 +16,7 @@ databaseChangeLog:
     author: your_name
     changes:
       - sqlFile:
-          path: changelog/002_create_table1.sql
+          path: changesets/002_create_table1.sql
           relativeToChangelogFile: true
     validCheckSum: any
 
@@ -22,9 +25,16 @@ databaseChangeLog:
     author: your_name
     changes:
       - sqlFile:
-          path: changelog/003_create_table2.sql
+          path: changesets/003_create_table2.sql
           relativeToChangelogFile: true
     validCheckSum: any
 
-# Runs all sql scripts in alphabetic order in changelog subdir of e.g. snowflake
-# validCheckSum: any - By default liquibase assumes a changeset will only be deployed once. This allows changesets to be changed over time, otherwise error on checksum diff.
+
+# option 2 - runs all sql scripts in alphabetic order in changesets subdir
+# does not support validCheckSum: any, changesets should not change over time
+
+#databaseChangeLog:
+#  - includeAll:
+#      path: path/to/changesets
+#      relativeToChangelogFile: true
+#      runOrder: alphabetical

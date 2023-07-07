@@ -1,0 +1,4 @@
+{
+    "SF_LIQUIBASE_DRIVER_NAME": "net.snowflake.client.jdbc.SnowflakeDriver",
+    "SF_LIQUIBASE_RELATIVE_CHANGELOG_PATH": "liquibase/snowflake/master.yml"
+}

@@ -9,6 +9,10 @@ parameters:
   type: string
   default: '4.23.0'
 
+- name: LIQUIBASE_DATABASE
+  type: string
+  default: 'snowflake'
+
 - name: RUN_STATUS
   type: boolean
   default: true
@@ -21,67 +25,79 @@ parameters:
   type: boolean
   default: true
 
-### DevOps Variable Group examples / convention
-# SF_ACCOUNT - abcdefg-sf12345
-# SF_LIQUIBASE_CHANGELOG_PATH - liquibase/snowflake/master.yml
-
-#### DevOps Variable Group should be migrated to Key Vault
-
 variables:
 - group: 'snowflake-variables'
 
 steps:
 - checkout: self
 
+#- task: AzureKeyVault@2
+#  inputs:
+#    azureSubscription: 'your-subscription-name'
+#    KeyVaultName: 'your-key-vault-name'
+#    SecretsFilter: '*'
+#  displayName: 'Read Azure Key Vault Secrets'
+
 - script: |
-    wget https://github.com/liquibase/liquibase/releases/download/v${{ parameters.LIQUIBASE_VERSION }}/liquibase-${{ parameters.LIQUIBASE_VERSION }}.zip
-    unzip liquibase-${{ parameters.LIQUIBASE_VERSION }}.zip -d liquibase
-    # grant execute permissions
-    chmod -R +x $(Build.SourcesDirectory)/liquibase
+    json_file_path="$(Build.SourcesDirectory)/liquibase/${{ parameters.LIQUIBASE_DATABASE }}/connector.json"
+    if [ -f "$json_file_path" ]; then
+        keyValuePairs=$(jq -r 'to_entries| .[] | "\(.key)=\(.value)"' "$json_file_path")
+        echo "$keyValuePairs" | while IFS="=" read -r key value
+        do
+            echo "Key: $key, Value: $value"
+            echo "##vso[task.setvariable variable=$key]$value"
+        done
+    else
+        echo "JSON not found, skipping the step."
+    fi
+  displayName: 'Read JSON-defined connector variables (if exists)'
+
+- script: |
+    lv="${{ parameters.LIQUIBASE_VERSION }}"
+    download_url="https://github.com/liquibase/liquibase/releases/download/v${lv}/liquibase-${lv}.zip"
+    unzip_dir="$(Build.SourcesDirectory)/liquibase"
+    wget "$download_url" && unzip "liquibase-${lv}.zip" -d "$unzip_dir" && chmod -R +x "$unzip_dir"
   displayName: 'Install Liquibase'
 
-### General requirements
-# changeLogFile must be a relative path to the pwd SourcesDirectory
-# SF_DATABASE.SF_SCHEMA used to load DATABASECHANGELOG and DATABASECHANGELOGLOCK must already exist
-
-### Snowflake specific requirements
-# must run alter account set MULTI_STATEMENT_COUNT = 0; on the executing account to support multi command jdbc changesets
-
-### Liquibase status - identify changesets that have not been deployed based on reading DATABASECHANGELOG
+- script: |
+    if [ -z "$(LIQUIBASE_CUSTOM_LIBRARY_URL)" ]; then
+      echo "No custom library has been specified."
+    else
+      lib_dir="$(Build.SourcesDirectory)/liquibase/lib"
+      mkdir -p "$lib_dir"
+      wget "$(LIQUIBASE_CUSTOM_LIBRARY_URL)" -P "$lib_dir"
+    fi
+  displayName: 'Download/install Liquibase custom library (if required)'
 
 - ${{ if parameters.RUN_STATUS }}:
   - script: |
       $(Build.SourcesDirectory)/liquibase/liquibase \
       --driver=$(SF_LIQUIBASE_DRIVER_NAME) \
-      --changeLogFile=$(SF_LIQUIBASE_CHANGELOG_PATH) \
-      --url="jdbc:snowflake://$(SF_ACCOUNT).snowflakecomputing.com/?db=$(SF_DATABASE)&schema=$(SF_SCHEMA)&warehouse=$(SF_WAREHOUSE)&role=$(SF_ROLE)" \
+      --changeLogFile=$(SF_LIQUIBASE_RELATIVE_CHANGELOG_PATH) \
+      --url="$(SF_URL)" \
       --username=$(SF_USERNAME) \
       --password=$(SF_PASSWORD) \
       status
-    displayName: 'Run Liquibase Status Command'
-
-### Liquibase validate - validate SQL syntax of the changesets to be deployed
+    displayName: 'Run Liquibase status command'
 
 - ${{ if parameters.RUN_VALIDATE }}:
   - script: |
       $(Build.SourcesDirectory)/liquibase/liquibase \
       --driver=$(SF_LIQUIBASE_DRIVER_NAME) \
-      --changeLogFile=$(SF_LIQUIBASE_CHANGELOG_PATH) \
-      --url="jdbc:snowflake://$(SF_ACCOUNT).snowflakecomputing.com/?db=$(SF_DATABASE)&schema=$(SF_SCHEMA)&warehouse=$(SF_WAREHOUSE)&role=$(SF_ROLE)" \
+      --changeLogFile=$(SF_LIQUIBASE_RELATIVE_CHANGELOG_PATH) \
+      --url="$(SF_URL)" \
       --username=$(SF_USERNAME) \
       --password=$(SF_PASSWORD) \
       validate
-    displayName: 'Run Liquibase Validate Command'
-
-### Liquibase update - Deploy the undeployed changesets to Snowflake
+    displayName: 'Run Liquibase validate command'
 
 - ${{ if parameters.RUN_UPDATE }}:
   - script: |
       $(Build.SourcesDirectory)/liquibase/liquibase \
       --driver=$(SF_LIQUIBASE_DRIVER_NAME) \
-      --changeLogFile=$(SF_LIQUIBASE_CHANGELOG_PATH) \
-      --url="jdbc:snowflake://$(SF_ACCOUNT).snowflakecomputing.com/?db=$(SF_DATABASE)&schema=$(SF_SCHEMA)&warehouse=$(SF_WAREHOUSE)&role=$(SF_ROLE)" \
+      --changeLogFile=$(SF_LIQUIBASE_RELATIVE_CHANGELOG_PATH) \
+      --url="$(SF_URL)" \
       --username=$(SF_USERNAME) \
       --password=$(SF_PASSWORD) \
       update
-    displayName: 'Run Liquibase Update Command'
+    displayName: 'Run Liquibase update command'
