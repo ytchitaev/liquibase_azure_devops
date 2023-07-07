@@ -15,7 +15,7 @@ Defined Azure Key Vault variables in variable group for demo purposes, should be
 - `SF_USERNAME` - Username for executing database scripts with liquibase
 - `SF_PASSWORD` - Password for executing database scripts with liquibase
 - `SF_URL` - Example: `jdbc:snowflake://abcdefg-sf12345.snowflakecomputing.com/?db=DEMO_DB&schema=LIQUIBASE_METADATA&warehouse=COMPUTE_WH&role=ACCOUNTADMIN`
-- `LIQUIBASE_CUSTOM_LIBRARY_URL` - Custom library URL to download to liquibase/lib/ (optional)
+- `LIQUIBASE_CUSTOM_LIBRARY_URL` - Custom library URL to download to `liquibase/lib/` (optional)
 ## Parameters
 
 - `LIQUIBASE_VERSION` - Liquibase version downloaded from GitHub
